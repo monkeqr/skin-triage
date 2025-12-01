@@ -106,13 +106,13 @@ class LLMService:
 
     def process_conversation(self, request: AnalyzeRequest, local_features: Optional[str] = None) -> AnalyzeResponse:
         """Основной метод обработки запроса."""
-        
+
         # 1. Сборка контекста и сообщений
         messages = self._prepare_messages(request, local_features)
-        
+
         # 2. Определение инструментов (Tools) для GPT
         tools = self._get_diagnosis_tool()
-        
+
         # 3. Вызов API
         try:
             response = client.chat.completions.create(
@@ -129,7 +129,7 @@ class LLMService:
             )
 
         assistant_message = response.choices[0].message
-        
+
         # 4. Обработка ответа
         # Если модель решила вызвать функцию (значит, пора ставить диагноз)
         if assistant_message.tool_calls:

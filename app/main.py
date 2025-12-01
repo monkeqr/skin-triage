@@ -47,23 +47,32 @@ async def analyze_rash(request: AnalyzeRequest):
     """
     Основная логика сервиса. Обрабатывает запрос, определяет режим и этап диалога.
     """
-    
+
+    updated_history = request.conversation_history.copy()
     local_features = None
-    
-    # Шаг 1: Vision Encoder (только если выбран 'strict_local' режим)
-    if request.pipeline_mode == "strict_local":
+
+    # Шаг 1: Vision Encoder (только если выбран 'strict_local' режим и это первый запрос)
+    if request.pipeline_mode == "strict_local" and len(request.conversation_history) == 0:
         try:
             # Получаем детальный текстовый отчет о признаках от локальной BLIP-модели
             local_features = local_vision_service.analyze_image(request.image_base64)
-            print(f"🔬 Локальные фичи извлечены: {local_features[:80]}...")
+            print(f"🔬 Локальные фичи извлечены: {local_features}...")
+
+            # Добавляем извлеченные фичи в историю как сообщение ассистента
+            updated_history.append(
+                Message(role="assistant", content=f"Extracted features from image:\n{local_features}")
+            )
+
         except Exception as e:
-            # Если BLIP не смог обработать изображение (например, не хватает памяти/GPU)
             error_msg = f"Ошибка Vision Encoder (BLIP): {str(e)}"
             raise HTTPException(status_code=500, detail=error_msg)
-            
+
     # Шаг 2: LLM Reasoning (обработка логики диалога)
-    response = llm_service.process_conversation(request, local_features)
-    
+    response = llm_service.process_conversation(
+        request.copy(update={"conversation_history": updated_history}),
+        local_features=local_features
+    )
+
     return response
 
 # Для запуска локально (необязательно, можно использовать uvicorn прямо в терминале)
