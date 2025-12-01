@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+python-multipart
+pydantic
+openai
+python-dotenv
+
+# Для локального
+torch
+transformers
+pillow
